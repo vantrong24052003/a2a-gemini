@@ -1,0 +1,112 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+---
+description:
+globs:
+alwaysApply: true
+---
+BẠN LÀ CURSOR gemini
+Nếu chưa có project hãy tạo project bằng lệnh: rails new gemini --api -> xong thì cd vào project
+Key của gemini: AIzaSyCiNaHKpr95bumQ49AD2uedr7aRTYo5OYc
+
+📘 Multi-Agent AI System using Rails + Nextjs + Cursor IDE + Gemini
+💡 Mục tiêu
+Xây dựng một hệ thống Multi-Agent AI sử dụng Rails làm điều phối trung tâm. Mỗi agent được điều hành bởi một session trong Cursor IDE, giao tiếp với nhau thông qua file trung gian (hoặc API), với luồng xử lý logic do Gemini Studio (Agent điều phối) quản lý.
+
+🏗 Kiến trúc tổng quan
+plaintext
+Copy
+Edit
+[User Prompt]
+     |
+     v
+[Gemini Studio Agent] (Rails điều phối)
+     |
+     +--> Tách task -> Giao cho Cursor Agents FE / BE
+     |       |
+     |       +---> Cursor_FE Agent (Frontend logic)
+     |       |
+     |       +---> Cursor_BE Agent (Backend logic)
+     |
+     +<-- Error / Result nhận lại từ FE / BE
+     |
+     +--> Nếu hoàn tất => chuyển sang Testing Agent
+             |
+             +---> Nếu Test fail -> gửi ngược lỗi về Gemini để retry
+🧠 Chi tiết từng agent
+1. GeminiStudioAgent (Điều phối chính)
+Nhận prompt đầu vào từ người dùng (qua Terminal hoặc file prompt.txt)
+
+Tách yêu cầu thành nhiều task nhỏ, ví dụ:
+
+Tạo frontend landing page
+
+Viết backend API cho sản phẩm
+
+Gán task cho từng agent FE và BE tương ứng.
+
+Theo dõi trạng thái task: Đang chạy, Thành công, Lỗi.
+
+Khi cả 2 hoàn tất, tiến hành gọi TestAgent.
+
+2. CursorFrontendAgent
+Nhận yêu cầu FE từ Gemini (qua file hoặc socket).
+
+Sinh code HTML/CSS/JS hoặc Next.js/Vue/... tùy context.
+
+Gửi lại kết quả cho Gemini khi xong hoặc báo lỗi nếu gặp exception.
+
+3. CursorBackendAgent
+Nhận yêu cầu BE từ Gemini.
+
+Sinh code backend API: ví dụ Rails API, Next.js API, Express.js...
+
+Gửi kết quả hoặc lỗi cho Gemini.
+
+4. TestAgent (tuỳ chọn nâng cao)
+Sau khi cả FE và BE báo hoàn tất.
+
+Chạy test logic toàn cục: gửi request, kiểm tra giao diện FE render đúng...
+
+Nếu lỗi test, gửi lỗi đó ngược lại cho Gemini để xử lý retry.
+
+🔁 Quy trình xử lý lỗi (retry)
+Nếu một agent (FE hoặc BE) gặp lỗi:
+
+Báo lỗi về Gemini.
+
+Gemini phân tích lỗi → sinh lại prompt fix bug (hoặc sửa lại task).
+
+Gửi lại task cho đúng agent để retry.
+
+Lặp lại cho đến khi task được đánh dấu là done.
+
+🧪 Ví dụ flow thực tế
+Giả sử user nhập prompt:
+
+"Tạo một trang landing page bán mèo, gồm Frontend đẹp và Backend xử lý đặt hàng."
+
+GeminiStudioAgent thực hiện:
+
+Parse prompt → chia:
+
+Task 1 (FE): Tạo landing page sản phẩm + UI form đặt hàng.
+
+Task 2 (BE): API nhận đơn hàng, lưu vào DB, gửi email.
+
+Gửi Task 1 → CursorFrontendAgent
+
+Gửi Task 2 → CursorBackendAgent
+
+Đợi kết quả:
+
+Nếu BE báo lỗi → Gemini sẽ phân tích và gửi lại task fix cho BE.
+
+Nếu FE done → Gemini yêu cầu BE gửi endpoint cho FE gọi.
+
+Khi cả hai hoàn tất → Gemini gọi TestAgent.
+
+Nếu test fail → xử lý như lỗi thường, retry.
