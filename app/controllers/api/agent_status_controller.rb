@@ -15,7 +15,6 @@ class Api::AgentStatusController < ApplicationController
     success = master_service.update_agent_status(agent_name, status, message)
 
     if success
-      # Lưu kết quả nếu có
       if result_data.present?
         save_agent_result(task_id, agent_name, result_data)
       end

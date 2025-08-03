@@ -7,6 +7,7 @@ class Api::PromptController < ApplicationController
       api_endpoints: {
         create_prompt: "POST /api/prompts",
         check_status: "GET /api/prompts/:id/status",
+        start_orchestrator: "POST /api/prompts/:id/orchestrate",
         update_agent_status: "PUT /api/agent_status",
         get_agent_task: "GET /api/agent_status/:task_id/:agent_name/task"
       },
@@ -34,7 +35,6 @@ class Api::PromptController < ApplicationController
       return
     end
 
-    # Khởi tạo Master Agent Service để xử lý
     master_service = MasterAgentService.new(user_prompt)
     result = master_service.process_prompt
 
@@ -52,5 +52,23 @@ class Api::PromptController < ApplicationController
     status_info = master_service.get_status
 
     render json: status_info
+  end
+
+  def orchestrate
+    task_id = params[:id]
+
+    Thread.new do
+      begin
+        TaskOrchestratorService.run(task_id)
+      rescue => e
+        Rails.logger.error("Lỗi khởi động TaskOrchestrator: #{e.message}")
+      end
+    end
+
+    render json: {
+      message: "TaskOrchestrator đã được khởi động",
+      task_id: task_id,
+      status: "orchestrating"
+    }
   end
 end

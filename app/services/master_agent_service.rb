@@ -1,6 +1,3 @@
-require "json"
-require "securerandom"
-
 class MasterAgentService
   GEMINI_API_KEY = "AIzaSyCiNaHKpr95bumQ49AD2uedr7aRTYo5OYc"
 
@@ -22,14 +19,13 @@ class MasterAgentService
     return { error: "Prompt không được cung cấp" } unless @prompt
 
     begin
-      # Bước 1: Phân tích prompt thành sub-tasks
       @sub_tasks = analyze_prompt_with_gemini(@prompt)
 
-      # Bước 2: Giao task cho các agent
       distribute_tasks_to_agents
 
-      # Bước 3: Lưu trạng thái
       save_status
+
+      start_task_orchestrator
 
       {
         task_id: @task_id,
@@ -67,7 +63,6 @@ class MasterAgentService
       agent.completed_at = Time.current
     end
 
-    # Kiểm tra xem tất cả agent đã hoàn thành chưa
     check_overall_completion
 
     save_status
@@ -77,8 +72,6 @@ class MasterAgentService
   private
 
   def analyze_prompt_with_gemini(prompt)
-    # Sử dụng Gemini API để phân tích prompt
-    # Đây là mock implementation, sẽ cần implement thực tế với Gemini API
     analysis_prompt = <<~PROMPT
       Phân tích prompt sau thành các task con cho Frontend, Backend và Testing:
 
@@ -92,7 +85,6 @@ class MasterAgentService
       }
     PROMPT
 
-    # Mock response - trong thực tế sẽ gọi Gemini API
     mock_response = {
       frontend_tasks: extract_frontend_tasks(prompt),
       backend_tasks: extract_backend_tasks(prompt),
@@ -144,15 +136,12 @@ class MasterAgentService
         @agents[:backend].last_message = "Đang xử lý: #{sub_task[:tasks].join(', ')}"
         send_task_to_backend_agent(sub_task)
       when "testing"
-        # Testing agent sẽ được kích hoạt sau khi FE/BE hoàn thành
         @agents[:tester].last_message = "Chờ kết quả từ Frontend và Backend"
       end
     end
   end
 
   def send_task_to_frontend_agent(sub_task)
-    # Gửi task cho Cursor Frontend Agent
-    # Có thể qua file, API, hoặc message queue
     task_file = "shared/frontend_task_#{@task_id}.json"
     FileUtils.mkdir_p("shared")
 
@@ -167,7 +156,6 @@ class MasterAgentService
   end
 
   def send_task_to_backend_agent(sub_task)
-    # Gửi task cho Cursor Backend Agent
     task_file = "shared/backend_task_#{@task_id}.json"
     FileUtils.mkdir_p("shared")
 
@@ -186,7 +174,6 @@ class MasterAgentService
     backend_done = @agents[:backend].status == "completed"
 
     if frontend_done && backend_done
-      # Kích hoạt testing agent
       @agents[:tester].status = "started"
       @agents[:tester].last_message = "Bắt đầu testing integration"
       @agents[:tester].started_at = Time.current
@@ -194,7 +181,6 @@ class MasterAgentService
       send_task_to_tester_agent
     end
 
-    # Kiểm tra nếu tất cả đã hoàn thành
     if @agents.values.all? { |agent| agent.status == "completed" }
       @overall_status = "completed"
     elsif @agents.values.any? { |agent| agent.status == "failed" }
@@ -257,6 +243,16 @@ class MasterAgentService
 
   def log_info(message)
     Rails.logger.info("[GeminiStudio] #{message}")
+  end
+
+  def start_task_orchestrator
+    Thread.new do
+      begin
+        TaskOrchestratorService.run(@task_id)
+      rescue => e
+        log_error("Lỗi TaskOrchestrator: #{e.message}")
+      end
+    end
   end
 
   def log_error(message)

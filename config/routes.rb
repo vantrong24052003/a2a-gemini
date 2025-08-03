@@ -6,6 +6,7 @@ Rails.application.routes.draw do
     get "/", to: "prompt#index"
     post "/prompts", to: "prompt#create"
     get "/prompts/:id/status", to: "prompt#status"
+    post "/prompts/:id/orchestrate", to: "prompt#orchestrate"
 
     put "/agent_status", to: "agent_status#update"
     get "/agent_status/:task_id/:agent_name/task", to: "agent_status#get_task"

@@ -30,6 +30,11 @@ if lsof -Pi :3000 -sTCP:LISTEN -t >/dev/null ; then
     echo "🧪 Running API tests..."
     ruby test_api.rb
 
+    # Run TaskOrchestrator tests
+    echo ""
+    echo "🎮 Running TaskOrchestrator tests..."
+    ruby test_orchestrator.rb
+
     echo ""
     echo "🎯 Gemini Studio is ready!"
     echo "   API Base URL: http://localhost:3000"
@@ -40,6 +45,9 @@ if lsof -Pi :3000 -sTCP:LISTEN -t >/dev/null ; then
     echo "   curl -X POST http://localhost:3000/api/prompts \\"
     echo "     -H 'Content-Type: application/json' \\"
     echo "     -d '{\"prompt\": \"Tạo trang web bán mèo\"}'"
+    echo ""
+    echo "🎮 TaskOrchestrator:"
+    echo "   curl -X POST http://localhost:3000/api/prompts/{task_id}/orchestrate"
     echo ""
     echo "🛑 To stop server: kill $SERVER_PID"
 
