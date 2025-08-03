@@ -24,6 +24,19 @@ class GeminiStudioTester
     end
   end
 
+  def test_api_info
+    puts "🔍 Testing API info endpoint..."
+    response = get('/api')
+    if response.code == '200'
+      data = JSON.parse(response.body)
+      puts "✅ API info endpoint OK"
+      puts "   Message: #{data['message']}"
+      puts "   Version: #{data['version']}"
+    else
+      puts "❌ API info endpoint failed: #{response.code}"
+    end
+  end
+
   def test_create_prompt
     puts "\n🔍 Testing create prompt..."
 
@@ -31,7 +44,7 @@ class GeminiStudioTester
       prompt: "Tạo trang web bán mèo với giao diện đẹp, form đặt hàng và API xử lý đơn hàng"
     }
 
-    response = post('/api/v1/prompts', prompt_data)
+    response = post('/api/prompts', prompt_data)
     if response.code == '200'
       data = JSON.parse(response.body)
       @task_id = data['task_id']
@@ -49,7 +62,7 @@ class GeminiStudioTester
     return unless @task_id
 
     puts "\n🔍 Testing check status..."
-    response = get("/api/v1/prompts/#{@task_id}/status")
+    response = get("/api/prompts/#{@task_id}/status")
     if response.code == '200'
       data = JSON.parse(response.body)
       puts "✅ Check status OK"
@@ -80,7 +93,7 @@ class GeminiStudioTester
       }
     }
 
-    response = put('/api/v1/agent_status', status_data)
+    response = put('/api/agent_status', status_data)
     if response.code == '200'
       data = JSON.parse(response.body)
       puts "✅ Agent status update OK"
@@ -96,7 +109,7 @@ class GeminiStudioTester
     return unless @task_id
 
     puts "\n🔍 Testing get agent task..."
-    response = get("/api/v1/agent_status/#{@task_id}/frontend/task")
+    response = get("/api/agent_status/#{@task_id}/frontend/task")
     if response.code == '200'
       data = JSON.parse(response.body)
       puts "✅ Get agent task OK"
@@ -112,6 +125,7 @@ class GeminiStudioTester
     puts "=" * 50
 
     test_root_endpoint
+    test_api_info
     test_create_prompt
     test_check_status
     test_agent_status_update
